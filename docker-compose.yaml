@@ -1,0 +1,45 @@
+version: '1.0'
+
+services:
+  app:
+    build: .
+    container_name: contacts_api_app
+    ports:
+      - "8000:8000"
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - contacts_network
+    depends_on:
+      - db
+      - redis
+  
+  db:
+    image: postgres:latest
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - contacts_network
+
+  redis:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - contacts_network
+
+networks:
+  contacts_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
