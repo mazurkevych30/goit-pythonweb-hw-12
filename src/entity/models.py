@@ -1,10 +1,25 @@
 from datetime import datetime
+from enum import Enum
 
-from sqlalchemy import String, DateTime, Date, func, ForeignKey, Text, Boolean
+from sqlalchemy import (
+    String,
+    DateTime,
+    Date,
+    func,
+    ForeignKey,
+    Text,
+    Boolean,
+    Enum as SQLEnum,
+)
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.conf import constants
+
+
+class UserRole(str, Enum):
+    USER = "USER"
+    ADMIN = "ADMIN"
 
 
 class Base(DeclarativeBase):
@@ -47,6 +62,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(nullable=False, unique=True)
     email: Mapped[str] = mapped_column(nullable=False, unique=True)
     hash_password: Mapped[str] = mapped_column(nullable=False)
+    role: Mapped[UserRole] = mapped_column(
+        SQLEnum(UserRole), default=UserRole.USER, nullable=False
+    )
     avatar: Mapped[str] = mapped_column(String(255), nullable=True)
     confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
 

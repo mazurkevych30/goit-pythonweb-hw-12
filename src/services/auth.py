@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, UTC, timezone
+from datetime import datetime, timedelta, timezone
+import json
 import secrets
 
 import jwt
@@ -6,7 +7,6 @@ import bcrypt
 import hashlib
 import redis.asyncio as redis
 from fastapi import Depends, HTTPException, status
-from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.exceptions import ConnectionError
@@ -17,6 +17,7 @@ from src.entity.models import User
 from src.repositories.refresh_token_repository import RefreshTokenRepository
 from src.repositories.user_repository import UserRepository
 from src.schemas.user import UserCreate
+from src.util.hash_password import hash_password
 
 redis_client = redis.from_url(settings.REDIS_URL)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -27,11 +28,6 @@ class AuthService:
         self.db = db
         self.user_repository = UserRepository(db)
         self.refresh_token_repository = RefreshTokenRepository(db)
-
-    def _hash_password(self, password: str) -> str:
-        salt = bcrypt.gensalt()
-        hashed_password = bcrypt.hashpw(password.encode(), salt)
-        return hashed_password.decode()
 
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
@@ -75,7 +71,7 @@ class AuthService:
             avatar = g.get_image()
         except Exception as e:
             print(f"Error generating Gravatar: {e}")
-        hashed_password = self._hash_password(user_data.password)
+        hashed_password = hash_password(user_data.password)
         user = await self.user_repository.create_user(
             user_data, hashed_password, avatar
         )
@@ -117,6 +113,12 @@ class AuthService:
                 detail="Redis connection error",
             )
 
+        cache_key = f"user:{token}"
+        cached_user = await redis_client.get(cache_key)
+        if cached_user:
+            user_dict = json.loads(cached_user)
+            return User(**user_dict)
+
         payload = self.decode_and_validate_access_token(token)
         username = payload.get("sub")
         if username is None:
@@ -130,6 +132,16 @@ class AuthService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
             )
+
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "avatar": user.avatar,
+            "role": user.role,
+        }
+        await redis_client.setex(cache_key, 3600, json.dumps(user_dict))
+
         return user
 
     def decode_and_validate_access_token(self, token: str) -> dict:
