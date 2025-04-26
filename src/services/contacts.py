@@ -29,5 +29,5 @@ class ContactsService:
             query=query, limit=limit, offset=offset, user=user
         )
 
-    async def get_upcoming_birthdays(self, days_ahead: int, user: User):
+    async def get_upcoming_birthdays(self, user: User, days_ahead: int):
         return await self.contacts_repository.get_upcoming_birthdays(user, days_ahead)

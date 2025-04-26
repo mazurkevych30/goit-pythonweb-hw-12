@@ -10,7 +10,7 @@ This module contains tests for the following methods of the UserRepository:
 - change_password: Changes the password of a user.
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -65,14 +65,14 @@ async def test_get_by_username(user_repository, mock_session, test_user):
         mock_session (AsyncMock): The mock database session.
         test_user (User): The test user object.
     """
-    mock_result = MagicMock()
+    mock_result = Mock()
     mock_result.scalar_one_or_none.return_value = test_user
     mock_session.execute = AsyncMock(return_value=mock_result)
 
     result = await user_repository.get_by_username("testuser")
 
     assert result == test_user
-    mock_session.execute.assert_called_once()
+    mock_session.execute.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -87,14 +87,14 @@ async def test_get_user_by_email(user_repository, mock_session, test_user):
         mock_session (AsyncMock): The mock database session.
         test_user (User): The test user object.
     """
-    mock_result = MagicMock()
+    mock_result = Mock()
     mock_result.scalar_one_or_none.return_value = test_user
     mock_session.execute = AsyncMock(return_value=mock_result)
 
     result = await user_repository.get_user_by_email("test@example.com")
 
     assert result == test_user
-    mock_session.execute.assert_called_once()
+    mock_session.execute.assert_awaited_once()
 
 
 @pytest.mark.asyncio

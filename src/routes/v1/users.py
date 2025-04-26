@@ -98,7 +98,6 @@ async def request_reset_password(
     background_tasks: BackgroundTasks,
     request: Request,
     user_service: UserService = Depends(get_user_service),
-    # current_user: User = Depends(get_current_user),
 ):
     user = await user_service.get_user_by_email(body.email)
 
