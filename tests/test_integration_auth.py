@@ -1,3 +1,10 @@
+"""Integration tests for the authentication routes.
+
+This module contains tests for the authentication-related endpoints, including
+registration, login, token refresh, and logout functionality. It uses pytest
+for testing and mocks external dependencies like email sending and Redis.
+"""
+
 from unittest.mock import Mock, AsyncMock, patch
 
 import pytest
@@ -17,6 +24,15 @@ user_data = {
 
 @pytest.mark.asyncio
 async def test_register(client, monkeypatch):
+    """Test user registration.
+
+    Args:
+        client: The test client for making HTTP requests.
+        monkeypatch: Pytest fixture for modifying or mocking objects.
+
+    This test verifies that a user can register successfully and that an email
+    is sent during the registration process.
+    """
     mock_send_email = AsyncMock()
     monkeypatch.setattr("src.services.email.send_email", mock_send_email)
 
@@ -37,6 +53,15 @@ async def test_register(client, monkeypatch):
 
 
 def test_repeat_register_username(client, monkeypatch):
+    """Test registration with an already existing username.
+
+    Args:
+        client: The test client for making HTTP requests.
+        monkeypatch: Pytest fixture for modifying or mocking objects.
+
+    This test ensures that attempting to register with a duplicate username
+    results in a conflict error.
+    """
     mock_send_email = Mock()
     monkeypatch.setattr("src.services.email.send_email", mock_send_email)
     user_copy = user_data.copy()
@@ -48,6 +73,15 @@ def test_repeat_register_username(client, monkeypatch):
 
 
 def test_repeat_register_email(client, monkeypatch):
+    """Test registration with an already existing email.
+
+    Args:
+        client: The test client for making HTTP requests.
+        monkeypatch: Pytest fixture for modifying or mocking objects.
+
+    This test ensures that attempting to register with a duplicate email
+    results in a conflict error.
+    """
     mock_send_email = Mock()
     monkeypatch.setattr("src.services.email.send_email", mock_send_email)
     user_copy = user_data.copy()
@@ -59,6 +93,13 @@ def test_repeat_register_email(client, monkeypatch):
 
 
 def test_not_confirmed_login(client):
+    """Test login attempt with an unconfirmed email.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test verifies that a user cannot log in without confirming their email.
+    """
     response = client.post(
         "api/v1/auth/login",
         data={
@@ -73,6 +114,13 @@ def test_not_confirmed_login(client):
 
 @pytest.mark.asyncio
 async def test_login(client):
+    """Test successful login.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test ensures that a user can log in successfully after confirming their email.
+    """
     async with TestingSessionLocal() as session:
         current_user = await session.execute(
             select(User).where(User.email == user_data.get("email"))
@@ -98,6 +146,13 @@ async def test_login(client):
 
 
 def test_wrong_password_login(client):
+    """Test login attempt with an incorrect password.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test verifies that a user cannot log in with a wrong password.
+    """
     response = client.post(
         "api/v1/auth/login",
         data={"username": user_data.get("username"), "password": "password"},
@@ -108,6 +163,13 @@ def test_wrong_password_login(client):
 
 
 def test_wrong_username_login(client):
+    """Test login attempt with an incorrect username.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test ensures that a user cannot log in with a non-existent username.
+    """
     response = client.post(
         "api/v1/auth/login",
         data={"username": "username", "password": user_data.get("password")},
@@ -118,6 +180,13 @@ def test_wrong_username_login(client):
 
 
 def test_validation_error_login(client):
+    """Test login attempt with missing required fields.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test verifies that login fails when required fields are not provided.
+    """
     response = client.post(
         "api/v1/auth/login", data={"password": user_data.get("password")}
     )
@@ -127,6 +196,14 @@ def test_validation_error_login(client):
 
 
 def test_refresh_token(client):
+    """Test token refresh functionality.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test ensures that a new access token and refresh token are issued
+    when a valid refresh token is provided.
+    """
     response = client.post(
         "api/v1/auth/login",
         data={
@@ -147,6 +224,14 @@ def test_refresh_token(client):
 
 
 def test_logout(client):
+    """Test user logout functionality.
+
+    Args:
+        client: The test client for making HTTP requests.
+
+    This test verifies that a user can log out successfully and that the
+    refresh token is invalidated.
+    """
     with patch("src.services.auth.redis_client") as redis_mock:
         redis_mock.exists.return_value = False
         redis_mock.setex.return_value = True

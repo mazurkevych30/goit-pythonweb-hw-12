@@ -1,3 +1,10 @@
+"""Contacts Management Routes.
+
+This module provides routes for managing user contacts, including creating,
+retrieving, updating, deleting, and searching contacts, as well as retrieving
+upcoming birthdays.
+"""
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -21,6 +28,17 @@ async def get_contacts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Retrieve a list of contacts for the current user.
+
+    Args:
+        limit (int): The maximum number of contacts to retrieve.
+        offset (int): The number of contacts to skip.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        list[ContactResponse]: A list of contacts.
+    """
     contacts_service = ContactsService(db)
     return await contacts_service.get_contacts(limit, offset, user)
 
@@ -31,6 +49,19 @@ async def get_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Retrieve a specific contact by ID.
+
+    Args:
+        contact_id (int): The ID of the contact to retrieve.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        ContactResponse: The contact details.
+
+    Raises:
+        HTTPException: If the contact is not found.
+    """
     contacts_service = ContactsService(db)
     contact = await contacts_service.ge_contact_by_id(contact_id, user)
     if contact is None:
@@ -47,6 +78,16 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Create a new contact for the current user.
+
+    Args:
+        body (BaseContact): The contact data to create.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        ContactResponse: The created contact details.
+    """
     contact_service = ContactsService(db)
     return await contact_service.create_contact(body, user)
 
@@ -58,6 +99,20 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Update an existing contact for the current user.
+
+    Args:
+        contact_id (int): The ID of the contact to update.
+        body (UpdateContact): The updated contact data.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        ContactResponse: The updated contact details.
+
+    Raises:
+        HTTPException: If the contact is not found.
+    """
     contact_secvice = ContactsService(db)
     contact = await contact_secvice.update_contact(contact_id, body, user)
     if contact is None:
@@ -74,6 +129,16 @@ async def delete_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Delete a contact for the current user.
+
+    Args:
+        contact_id (int): The ID of the contact to delete.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        None
+    """
     contact_secvice = ContactsService(db)
     await contact_secvice.remove_contact(contact_id, user)
     return None
@@ -87,6 +152,18 @@ async def search_contacts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Search for contacts by a query string.
+
+    Args:
+        query (str): The search query string.
+        limit (int): The maximum number of contacts to retrieve.
+        offset (int): The number of contacts to skip.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        list[ContactResponse]: A list of matching contacts.
+    """
     contact_secvice = ContactsService(db)
     return await contact_secvice.search_contacts(query, limit, offset, user)
 
@@ -97,5 +174,15 @@ async def get_upcoming_birthdays(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Retrieve contacts with upcoming birthdays within a specified number of days.
+
+    Args:
+        days_ahead (int): The number of days ahead to check for birthdays.
+        db (AsyncSession): The database session dependency.
+        user (User): The current authenticated user.
+
+    Returns:
+        list[ContactResponse]: A list of contacts with upcoming birthdays.
+    """
     contact_secvice = ContactsService(db)
     return await contact_secvice.get_upcoming_birthdays(user, days_ahead)

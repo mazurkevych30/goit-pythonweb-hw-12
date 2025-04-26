@@ -1,3 +1,9 @@
+"""Authentication and Authorization Routes.
+
+This module provides routes for user authentication and authorization, including
+registration, login, token refresh, and logout functionalities.
+"""
+
 import logging
 
 from fastapi import APIRouter, Depends, status, Request, BackgroundTasks
@@ -15,6 +21,14 @@ logger = logging.getLogger("uvicorn.error")
 
 
 def get_auth_service(db: AsyncSession = Depends(get_db)):
+    """Get an instance of the AuthService.
+
+    Args:
+        db (AsyncSession): The database session dependency.
+
+    Returns:
+        AuthService: An instance of the AuthService.
+    """
     return AuthService(db)
 
 
@@ -27,6 +41,17 @@ async def register(
     request: Request,
     auth_service: AuthService = Depends(get_auth_service),
 ):
+    """Register a new user.
+
+    Args:
+        user_data (UserCreate): The user data for registration.
+        background_tasks (BackgroundTasks): Background tasks for sending emails.
+        request (Request): The HTTP request object.
+        auth_service (AuthService): The authentication service dependency.
+
+    Returns:
+        UserResponse: The registered user data.
+    """
     user = await auth_service.register_user(user_data)
     background_tasks.add_task(send_email, user.email, user.username, request.base_url)
     logger.info("User %s registered successfully", user.username)
@@ -39,6 +64,16 @@ async def login(
     request: Request = None,
     auth_service: AuthService = Depends(get_auth_service),
 ):
+    """Authenticate a user and generate access and refresh tokens.
+
+    Args:
+        form_data (OAuth2PasswordRequestForm): The login form data.
+        request (Request, optional): The HTTP request object. Defaults to None.
+        auth_service (AuthService): The authentication service dependency.
+
+    Returns:
+        TokenResponse: The access and refresh tokens.
+    """
     user = await auth_service.authenticate(form_data.username, form_data.password)
     access_token = auth_service.create_access_token(user.username)
     refresh_token = await auth_service.create_refresh_token(
@@ -57,6 +92,16 @@ async def refresh(
     request: Request = None,
     auth_service: AuthService = Depends(get_auth_service),
 ):
+    """Refresh access and refresh tokens.
+
+    Args:
+        refresh_token (RefreshTokenRequest): The refresh token request data.
+        request (Request, optional): The HTTP request object. Defaults to None.
+        auth_service (AuthService): The authentication service dependency.
+
+    Returns:
+        TokenResponse: The new access and refresh tokens.
+    """
     user = await auth_service.validate_refresh_token(refresh_token.refresh_token)
 
     new_access_token = auth_service.create_access_token(user.username)
@@ -81,6 +126,16 @@ async def logout(
     token: str = Depends(oauth2_scheme),
     auth_service: AuthService = Depends(get_auth_service),
 ):
+    """Logout a user by revoking access and refresh tokens.
+
+    Args:
+        refresh_token (RefreshTokenRequest): The refresh token to revoke.
+        token (str): The access token to revoke.
+        auth_service (AuthService): The authentication service dependency.
+
+    Returns:
+        None
+    """
     await auth_service.revoke_access_token(token)
     await auth_service.revoke_refresh_token(refresh_token.refresh_token)
     return None

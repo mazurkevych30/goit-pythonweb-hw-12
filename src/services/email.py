@@ -1,3 +1,8 @@
+"""This module provides email-related services using FastAPI-Mail.
+
+The module includes functions to send email for account verification and password reset.
+"""
+
 from pathlib import Path
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
@@ -23,6 +28,19 @@ conf = ConnectionConfig(
 
 
 async def send_email(email: EmailStr, username: str, host: str):
+    """Send an email for account verification.
+
+    Args:
+        email (EmailStr): The recipient's email address.
+        username (str): The username of the recipient.
+        host (str): The host URL for the verification link.
+
+    Returns:
+        None
+
+    Raises:
+        ConnectionErrors: If there is an error connecting to the email server.
+    """
     try:
         token_verification = create_email_token({"sub": email})
         message = MessageSchema(
@@ -45,6 +63,20 @@ async def send_email(email: EmailStr, username: str, host: str):
 async def send_reset_password_email(
     email: EmailStr, username: str, host: str, token: str
 ):
+    """Send an email for password reset.
+
+    Args:
+        email (EmailStr): The recipient's email address.
+        username (str): The username of the recipient.
+        host (str): The host URL for the password reset link.
+        token (str): The token for password reset.
+
+    Returns:
+        None
+
+    Raises:
+        ConnectionErrors: If there is an error connecting to the email server.
+    """
     try:
         message = MessageSchema(
             subject="Reset password",

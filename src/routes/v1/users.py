@@ -1,3 +1,10 @@
+"""User Management Routes.
+
+This module provides routes for managing user-related operations, including
+retrieving user details, confirming email, updating avatars, and handling
+password reset requests.
+"""
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -41,6 +48,16 @@ async def me(
     token: str = Depends(oauth2_scheme),
     auth_service: AuthService = Depends(get_auth_service),
 ):
+    """Retrieve the current authenticated user's details.
+
+    Args:
+        request (Request): The HTTP request object.
+        token (str): The access token for authentication.
+        auth_service (AuthService): The authentication service dependency.
+
+    Returns:
+        UserResponse: The details of the current user.
+    """
     return await auth_service.get_current_user(token)
 
 
@@ -48,6 +65,18 @@ async def me(
 async def confirmed_email(
     token: str, user_service: UserService = Depends(get_user_service)
 ):
+    """Confirm a user's email using a token.
+
+    Args:
+        token (str): The email confirmation token.
+        user_service (UserService): The user service dependency.
+
+    Returns:
+        dict: A message indicating the confirmation status.
+
+    Raises:
+        HTTPException: If the token is invalid or the user is not found.
+    """
     email = get_email_from_token(token)
     user = await user_service.get_user_by_email(email)
     if user is None:
@@ -67,6 +96,17 @@ async def request_email(
     request: Request,
     user_service: UserService = Depends(get_user_service),
 ):
+    """Request an email confirmation for a user.
+
+    Args:
+        body (RequestEmail): The email request payload.
+        background_tasks (BackgroundTasks): Background tasks for sending emails.
+        request (Request): The HTTP request object.
+        user_service (UserService): The user service dependency.
+
+    Returns:
+        dict: A message indicating the email request status.
+    """
     user = await user_service.get_user_by_email(body.email)
 
     if user.confirmed:
@@ -84,6 +124,16 @@ async def update_user_avatar(
     user: User = Depends(get_current_admin_user),
     user_service: UserService = Depends(get_user_service),
 ):
+    """Update the avatar of the current user.
+
+    Args:
+        file (UploadFile): The uploaded avatar file.
+        user (User): The current authenticated admin user.
+        user_service (UserService): The user service dependency.
+
+    Returns:
+        UserResponse: The updated user details with the new avatar URL.
+    """
     avatar_url = UploadFileService(
         settings.CLD_NAME, settings.CLD_API_KEY, settings.CLD_API_SECRET
     ).upload_file(file, user.username)
@@ -99,6 +149,17 @@ async def request_reset_password(
     request: Request,
     user_service: UserService = Depends(get_user_service),
 ):
+    """Request a password reset for a user.
+
+    Args:
+        body (RequestEmail): The email request payload.
+        background_tasks (BackgroundTasks): Background tasks for sending emails.
+        request (Request): The HTTP request object.
+        user_service (UserService): The user service dependency.
+
+    Returns:
+        dict: A message indicating the password reset email status.
+    """
     user = await user_service.get_user_by_email(body.email)
 
     if user is None:
@@ -124,5 +185,16 @@ async def reset_password(
     user_service: UserService = Depends(get_user_service),
     current_user: User = Depends(get_current_user),
 ):
+    """Reset a user's password using a token.
+
+    Args:
+        token (str): The password reset token.
+        body (ResetPasswordRequest): The new password payload.
+        user_service (UserService): The user service dependency.
+        current_user (User): The current authenticated user.
+
+    Returns:
+        dict: A message indicating the password reset status.
+    """
     await user_service.change_password(token, body.new_password)
     return {"message": "Password changed successfully"}

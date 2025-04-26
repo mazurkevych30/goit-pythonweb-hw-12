@@ -17,7 +17,7 @@ from main import app
 from src.entity.models import Base, User, UserRole
 from src.database.db import get_db
 from src.services.auth import AuthService
-from src.util.hash_password import hash_password
+from src.utils.hash_password import hash_password
 
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
